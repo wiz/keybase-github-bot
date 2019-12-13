@@ -1,27 +1,58 @@
 #!/usr/bin/env node
+const http = require('http')
+const crypto = require('crypto')
+const fs = require('fs')
 const Bot = require('keybase-bot')
 
+const username = process.env.KB_BOT_USERNAME
+const paperkey = process.env.KB_BOT_PAPERKEY
+const team = process.env.KB_TEAMNAME
+const secret = process.env.GITHUB_SECRET
+const channel = "test-kb-cli"
+
 const bot = new Bot()
-const username = process.env.KB_USERNAME
-const paperkey = process.env.KB_PAPERKEY
-const target = process.env.KB_TARGET
+const server = http.createServer
+(
+    (req, res) =>
+    {
+        let body = []
+        req.on('data', (chunk) => body.push(chunk))
+        req.on('end', () =>
+            {
+                try
+                {
+                    req.body = JSON.parse(Buffer.concat(body).toString())
+                }
+                catch (e)
+                {
+                    req.body = Buffer.concat(body).toString()
+                }
+                handle(req, res)
+            }
+        )
+    }
+)
 
 async function main()
 {
     try
     {
         await init()
-        await joinAll()
-        await hello()
+        await joinAll(team)
+        await server.listen(3001)
+        console.log('Ready!')
     }
     catch (error)
     {
         console.error(error)
-    }
-    finally
-    {
         await bot.deinit()
     }
+}
+
+function cleanup()
+{
+    bot.deinit()
+    process.exit()
 }
 
 async function init()
@@ -30,9 +61,9 @@ async function init()
     console.log(`Your bot is initialized. It is logged in as ${bot.myInfo().username}`)
 }
 
-async function joinAll()
+async function joinAll(teamName)
 {
-    await bot.chat.listChannels('bisq').then
+    await bot.chat.listChannels(teamName).then
     (
         async teamConversations =>
         {
@@ -42,15 +73,11 @@ async function joinAll()
                 {
                     await bot.chat.joinChannel(conversation.channel)
                     console.log('Joined team channel', conversation.channel.name, conversation.channel.topicName)
+                    await sendMessageToTeamChannel(teamName, conversation.channel.name, `Hello! This is ${bot.myInfo().username}! a friendly bot to help with GitHub`)
                 }
             }
         }
     )
-}
-
-async function hello()
-{
-    await sendMessageToTeamChannel("bisq", "test-kb-cli", `Hello! This is ${bot.myInfo().username} saying hello from my device ${bot.myInfo().devicename}`)
 }
 
 async function sendMessageToTeamChannel(teamName, channelName, body)
@@ -70,6 +97,166 @@ async function sendMessageToTeamChannel(teamName, channelName, body)
     await bot.chat.send(channel, message)
 }
 
+function handle(req, res)
+{
+    let sig = ""
+    let announcement = ""
+    let commitString = ""
+
+    console.log("received complete data request -- " + req.headers['x-github-delivery'] + " -- " + Date() + "\n")
+    //console.log(req.headers)
+    //console.log(req.body)
+
+    try
+    {
+        sig = "sha1=" + crypto.createHmac('sha1', secret).update(req.headers['x-github-delivery']).digest('hex')
+    }
+    catch(e)
+    {
+        console.log("failed to calculate signature! "+sig)
+        return
+    }
+
+    if (req.headers['x-hub-signature'] != sig)
+    {
+        console.log("failed sig check check: "+sig)
+    }
+
+    if (req.headers['x-github-event'] === "issues")
+    {
+        if (req.body.action === "opened")
+        {
+            announcement = "⚠️   new issue opened by _" + req.body.issue.user.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.issue.html_url + escapeBody( req.body.issue.body )
+        }
+        else if (req.body.action === "closed")
+        {
+            announcement = "⛔  issue closed by _" + req.body.sender.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.issue.html_url + '\n\n.'
+        }
+        else if (req.body.action === "reopened")
+        {
+            announcement = "🔁  issue reopened by _" + req.body.sender.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.issue.html_url + '\n\n.'
+        }
+    }
+
+    if (req.headers['x-github-event'] === "issue_comment" && req.body.action === "created")
+    {
+        announcement = "🗨️  comment by _" + req.body.comment.user.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.comment.html_url + escapeBody( req.body.comment.body )
+    }
+
+    if (req.headers['x-github-event'] === "pull_request_review_comment" && req.body.action === "created")
+    {
+        announcement = "💭  review comment by _" + req.body.comment.user.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.comment.html_url + escapeBody( req.body.comment.body )
+    }
+
+    if (req.headers['x-github-event'] === "pull_request")
+    {
+        if (req.body.action === "opened")
+        {
+            announcement = "💡  new pull request opened by _" + req.body.pull_request.user.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.pull_request.html_url + escapeBody( req.body.pull_request.body )
+        }
+        else if (req.body.action === "reopened")
+        {
+            announcement = "🔁  pull request reopened by _" + req.body.sender.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.pull_request.html_url + '\n\n.'
+        }
+        else if (req.body.action === "closed" && req.body.pull_request.merged)
+        {
+            announcement = "🏆  pull request merged by _" + req.body.sender.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.pull_request.html_url + '\n\n.'
+        }
+        else if (req.body.action === "closed" && !req.body.pull_request.merged)
+        {
+            announcement = "⛔  pull request closed by _" + req.body.sender.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.pull_request.html_url + '\n\n.'
+        }
+    }
+
+    if (req.headers['x-github-event'] === "pull_request_review")
+    {
+        if (req.body.action === "submitted")
+        {
+            if (req.body.review.state === "changes_requested")
+            {
+                announcement = "❌  _" + req.body.sender.login + "_ requested changes on pull request by _" +  req.body.pull_request.user.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n"+ req.body.review._links.html.href + escapeBody( req.body.review.body )
+            }
+            else if (req.body.review.state === "approved") {
+                announcement = "✅  _" + req.body.sender.login + "_ approved pull request by _" +  req.body.pull_request.user.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n"+ req.body.review._links.html.href + escapeBody( req.body.review.body )
+            }
+            else if (req.body.review.state === "commented")
+            {
+                announcement = "🔍  pull request reviewed by _" +  req.body.sender.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n" + req.body.review._links.html.href + escapeBody( req.body.review.body )
+            }
+        }
+    }
+
+    if (req.headers['x-github-event'] === "push")
+    {
+        if (req.body.ref === "refs/heads/master" || ( ( req.body.ref ).replace( /refs\/tags\/v[0-9].[0-9].?[0-9]?/, "" ).length === 0 ))
+        {
+            if (req.body.commits.length > 0)
+            {
+                for (let c in req.body.commits)
+                {
+                    commitString += ">\\`" + req.body.commits[c].id.substring(0,8) + "\\` " + ( req.body.commits[c].message.split("\n")[0] ).replace( /`+/gm, "`" ).replace( /`/gm    , "\\`" ).replace( /"/gm, '\\"'  ) + " - " + req.body.commits[c].author.username + "\n"
+                }
+                announcement = '*_' + req.body.sender.login + '_ pushed ' + req.body.commits.length + ( req.body.commits.length > 1 ? ' commits' : ' commit' ) + ' to* \\`' + ( req.body.ref).split("/")[2] + '\\`\n\n' + commitString  + '\n.'
+                commitString = ""
+            }
+        }
+    }
+
+    if (req.headers['x-github-event'] === "release" && req.body.action === "published")
+    {
+        announcement = "*_" + req.body.sender.login + "_ just released " + req.body.release.tag_name + "*\n" + req.body.release.html_url + "\n\n🎉\n\n."
+    }
+
+    console.log(announcement)
+
+    if (announcement.length > 0)
+    {
+        sendMessageToTeamChannel(team, channel, announcement)
+    }
+    else
+    {
+        console.log("nothing to announce??")
+    }
+}
+
+function escapeTitle(rawTitle)
+{
+    let escapedTitle = rawTitle.replace( /`+/gm, "`" )
+    escapedTitle = escapedTitle.replace( /`/gm, "'" )
+    escapedTitle = escapedTitle.replace( /"/gm, '\\"' )
+    return escapedTitle
+}
+
+function escapeBody(rawBody)
+{
+    //don't bother if body is empty
+    if (rawBody.length === 0)
+    {
+        return "\n\n."
+    }
+
+    //escape back-ticks and double-quotes
+    let escapedBody = rawBody.replace( /`/gm, "\\`" )
+    escapedBody = escapedBody.replace( /"/gm, '\\"' )
+
+    let bodyEnd = "\n\n.";  //full message shows
+
+    //truncate string after 3 paragraphs
+    let splitBody = escapedBody.split( "\r\n\r\n" )
+    if( splitBody.length > 3 ) {
+        splitBody = splitBody.slice(0,3)
+        escapedBody = splitBody.join( "\\r\\n\\r\\n" )
+        bodyEnd = "\n\n...";    //truncated message shows
+    }
+
+    escapedBody = "\n\n" + escapedBody + bodyEnd
+
+    return escapedBody
+}
+
+process.on('exit', cleanup)
+process.on('SIGINT', cleanup)
+process.on('uncaughtException', cleanup)
 main()
 
-// vim:ts=4
+console.log("Starting...")
