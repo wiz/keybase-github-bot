@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+const Bot = require('keybase-bot')
+
+const bot = new Bot()
+const username = process.env.KB_USERNAME
+const paperkey = process.env.KB_PAPERKEY
+const target = process.env.KB_TARGET
+
+async function main()
+{
+    try
+    {
+        await init()
+        await joinAll()
+        await hello()
+    }
+    catch (error)
+    {
+        console.error(error)
+    }
+    finally
+    {
+        await bot.deinit()
+    }
+}
+
+async function init()
+{
+    await bot.init(username, paperkey, {verbose: false})
+    console.log(`Your bot is initialized. It is logged in as ${bot.myInfo().username}`)
+}
+
+async function joinAll()
+{
+    await bot.chat.listChannels('bisq').then
+    (
+        async teamConversations =>
+        {
+            for (const conversation of teamConversations)
+            {
+                if (conversation.memberStatus !== 'active')
+                {
+                    await bot.chat.joinChannel(conversation.channel)
+                    console.log('Joined team channel', conversation.channel.name, conversation.channel.topicName)
+                }
+            }
+        }
+    )
+}
+
+async function hello()
+{
+    await sendMessageToTeamChannel("bisq", "test-kb-cli", `Hello! This is ${bot.myInfo().username} saying hello from my device ${bot.myInfo().devicename}`)
+}
+
+async function sendMessageToTeamChannel(teamName, channelName, body)
+{
+    const channel =
+    {
+        membersType: 'team',
+        topicType: 'chat',
+        name: teamName,
+        topicName: channelName,
+    }
+    const message =
+    {
+        body: body
+    }
+    console.log(`Sending message to ${teamName}#${channelName}: ${body}`)
+    await bot.chat.send(channel, message)
+}
+
+main()
+
+// vim:ts=4

@@ -1,0 +1,21 @@
+[Unit]
+Description=Keybase GitHub Bot
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/default/keybase-github-bot.env
+ExecStart=/usr/local/bin/keybase-github-bot
+ExecStop=/bin/kill -TERM ${MAINPID}
+Restart=on-failure
+
+User=irc
+Group=irc
+
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target
