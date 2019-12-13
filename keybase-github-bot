@@ -34,6 +34,8 @@ const server = http.createServer
                 catch (e)
                 {
                     console.log("Error! "+e)
+                    res.statusCode = 400
+                    res.end()
                 }
             }
         )
@@ -58,8 +60,8 @@ async function main()
 
 function cleanup()
 {
+    console.log("cleaning up...")
     bot.deinit()
-    process.exit()
 }
 
 async function init()
@@ -109,6 +111,13 @@ function handle(req, res)
     let sig = ""
     let announcement = ""
     let commitString = ""
+
+    if (req.headers['x-github-delivery'] == null)
+    {
+        res.statusCode = 400
+        res.end()
+        return
+    }
 
     console.log("received complete data request -- " + req.headers['x-github-delivery'] + " -- " + Date() + "\n")
     //console.log(req.headers)
@@ -237,6 +246,7 @@ function handle(req, res)
     }
 
     sendMessageToTeamChannel(team, channel, announcement)
+    res.end()
 }
 
 function getChannelForRepo(targetRepo)
@@ -289,7 +299,6 @@ function escapeBody(rawBody)
 }
 
 process.on('exit', cleanup)
-process.on('SIGINT', cleanup)
 main()
 
 console.log("Starting...")
