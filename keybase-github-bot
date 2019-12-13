@@ -8,7 +8,7 @@ const username = process.env.KB_BOT_USERNAME
 const paperkey = process.env.KB_BOT_PAPERKEY
 const team = process.env.KB_TEAMNAME
 const secret = process.env.GITHUB_SECRET
-const channel = "test-kb-cli"
+const channelMapping = process.env.GITHUB_REPO_MAPPINGS
 
 const bot = new Bot()
 const server = http.createServer
@@ -27,7 +27,14 @@ const server = http.createServer
                 {
                     req.body = Buffer.concat(body).toString()
                 }
-                handle(req, res)
+                try
+                {
+                    handle(req, res)
+                }
+                catch (e)
+                {
+                    console.log("Error! "+e)
+                }
             }
         )
     }
@@ -44,7 +51,7 @@ async function main()
     }
     catch (error)
     {
-        console.error(error)
+        console.log(error)
         await bot.deinit()
     }
 }
@@ -207,16 +214,43 @@ function handle(req, res)
         announcement = "*_" + req.body.sender.login + "_ just released " + req.body.release.tag_name + "*\n" + req.body.release.html_url + "\n\n🎉\n\n."
     }
 
-    console.log(announcement)
-
-    if (announcement.length > 0)
-    {
-        sendMessageToTeamChannel(team, channel, announcement)
-    }
-    else
+    if (announcement.length < 1)
     {
         console.log("nothing to announce??")
+        return
     }
+
+    console.log(announcement)
+
+    const repo = req.body.repository.full_name
+    if (repo == null)
+    {
+        console.log("repo is null")
+        return
+    }
+
+    const channel = getChannelForRepo(repo)
+    if (channel == null)
+    {
+        console.log("channel is null")
+        return
+    }
+
+    sendMessageToTeamChannel(team, channel, announcement)
+}
+
+function getChannelForRepo(targetRepo)
+{
+    let map = channelMapping.split(',')
+    for (let i = 0; map[i]; i++)
+    {
+        mapmap = map[i].split('=')
+        repo = mapmap[0]
+        channel = mapmap[1]
+        if (targetRepo == repo)
+            return channel
+    }
+    return null
 }
 
 function escapeTitle(rawTitle)
@@ -256,7 +290,6 @@ function escapeBody(rawBody)
 
 process.on('exit', cleanup)
 process.on('SIGINT', cleanup)
-process.on('uncaughtException', cleanup)
 main()
 
 console.log("Starting...")
