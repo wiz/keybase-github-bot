@@ -17,20 +17,20 @@ sudo certbot --nginx --agree-tos --non-interactive -m ssl@example.com -d webhook
 
 Install this bot code from GitHub
 ```bash
-wget -O /usr/local/bin/keybase-github-bot https://raw.githubusercontent.com/wiz/keybase-github-bot/keybase-github-bot
+wget -O /usr/local/bin/keybase-github-bot https://raw.githubusercontent.com/wiz/keybase-github-bot/master/keybase-github-bot
 chmod 755 /usr/local/bin/keybase-github-bot
 ```
 
 Configure the bot for your team
 ```bash
-wget -O /etc/default/keybase-github-bot.env https://raw.githubusercontent.com/wiz/keybase-github-bot/keybase-github-bot.env
+wget -O /etc/default/keybase-github-bot.env https://raw.githubusercontent.com/wiz/keybase-github-bot/master/keybase-github-bot.env
 chmod 644 /etc/default/keybase-github-bot.env
 vi /etc/default/keybase-github-bot.env # modify as needed
 ```
 
 Install systemd service for bot to start at boot
 ```bash
-wget -O /etc/systemd/system/keybase-github-bot.service https://raw.githubusercontent.com/wiz/keybase-github-bot/keybase-github-bot.service
+wget -O /etc/systemd/system/keybase-github-bot.service https://raw.githubusercontent.com/wiz/keybase-github-bot/master/keybase-github-bot.service
 chmod 644 /etc/systemd/system/keybase-github-bot.service
 systemctl daemon-reload
 ```
