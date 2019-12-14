@@ -38,19 +38,9 @@ chmod 644 /etc/systemd/system/keybase-github-bot.service
 systemctl daemon-reload
 ```
 
-Create webhook on your GitHub repo
-* Endpoint -> https://webhook.example.com/bot
-* JSON encoding
-* Secret must match string in bot config
-* Repo to team/channel mapping in bot config
-
-Start bot service
+Start bot service, check logs
 ```bash
 service keybase-github-bot start
-```
-
-Check logs for what's going on
-```bash
 journalctl -eu keybase-github-bot
 ```
 
@@ -61,3 +51,17 @@ Dec 13 15:26:03 webhook keybase-github-bot[13723]: Starting...
 Dec 13 15:26:07 webhook keybase-github-bot[13723]: Your bot is initialized. It is logged in as bisqcat
 Dec 13 15:26:16 webhook keybase-github-bot[13723]: Ready!
 ```
+
+Configure nginx to proxy /bot to your now running bot service
+```bash
+wget -O /etc/nginx/nginx.conf https://raw.githubusercontent.com/wiz/keybase-github-bot/master/nginx.conf
+vi /etc/nginx/nginx.conf # edit as necessary for your domain (i.e. example.com -> your domain)
+service nginx restart # restart nginx
+```
+
+Finally, configure the webhook on your GitHub repo
+* Set endpoint -> `https://webhook.example.com/bot`
+* Set content-type to use `application/json` encoding
+* Set secret to match your string in bot config
+* Map full git repo name in bot config to channel name
+  i.e. `wiz/keybase-github-bot=general`)
