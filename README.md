@@ -1,6 +1,9 @@
-# Keybase GitHub Bot - notifies keybase team channel on various GitHub events
+# Keybase GitHub Bot
+Notify your Keybase channels when stuff happens on GitHub!
 
-## Setup for Ubuntu 18
+<img width="655" alt="Screen Shot 2019-12-14 at 12 09 32" src="https://user-images.githubusercontent.com/232186/70842755-b75e5200-1e6a-11ea-8454-411da04cbd7b.png">
+
+## How to install on Ubuntu 18
 
 Install dependencies NodeJS + NPM, nginx + letsencrypt, Keybase + keybase-bot
 ```base
