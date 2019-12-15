@@ -276,15 +276,15 @@ function truncateBody(rawBody)
         return "\n\n."
     }
 
-    let truncatedBody = rawBody.trim();
-    let bodyEnd = "\n\n.";  //if full message shows
+    let truncatedBody = rawBody.trim()
+    let bodyEnd = "\n\n."  //if full message shows
 
     //truncate string after 3 paragraphs
     let splitBody = rawBody.split( "\r\n\r\n" )
     if( splitBody.length > 3 ) {
         splitBody = splitBody.slice(0,3)
         truncatedBody = splitBody.join( "\r\n\r\n" )
-        bodyEnd = "\n\n...";    //if truncated message shows
+        bodyEnd = "\n\n..."    //if truncated message shows
     }
 
     truncatedBody = "\n\n" + truncatedBody + bodyEnd
