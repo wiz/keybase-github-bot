@@ -276,7 +276,7 @@ function truncateBody(rawBody)
         return "\n\n."
     }
 
-    let truncatedBody = rawBody;
+    let truncatedBody = rawBody.trim();
     let bodyEnd = "\n\n.";  //if full message shows
 
     //truncate string after 3 paragraphs
