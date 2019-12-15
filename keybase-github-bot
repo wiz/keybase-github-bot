@@ -142,7 +142,7 @@ function handle(req, res)
     {
         if (req.body.action === "opened")
         {
-            announcement = "⚠️   new issue opened by _" + req.body.issue.user.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.issue.html_url + escapeBody( req.body.issue.body )
+            announcement = "⚠️   new issue opened by _" + req.body.issue.user.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.issue.html_url + truncateBody( req.body.issue.body )
         }
         else if (req.body.action === "closed")
         {
@@ -156,19 +156,19 @@ function handle(req, res)
 
     if (req.headers['x-github-event'] === "issue_comment" && req.body.action === "created")
     {
-        announcement = "🗨️  comment by _" + req.body.comment.user.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.comment.html_url + escapeBody( req.body.comment.body )
+        announcement = "🗨️  comment by _" + req.body.comment.user.login + '_\n*' + escapeTitle( req.body.issue.title ) + '*\n' + req.body.comment.html_url + truncateBody( req.body.comment.body )
     }
 
     if (req.headers['x-github-event'] === "pull_request_review_comment" && req.body.action === "created")
     {
-        announcement = "💭  review comment by _" + req.body.comment.user.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.comment.html_url + escapeBody( req.body.comment.body )
+        announcement = "💭  review comment by _" + req.body.comment.user.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.comment.html_url + truncateBody( req.body.comment.body )
     }
 
     if (req.headers['x-github-event'] === "pull_request")
     {
         if (req.body.action === "opened")
         {
-            announcement = "💡  new pull request opened by _" + req.body.pull_request.user.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.pull_request.html_url + escapeBody( req.body.pull_request.body )
+            announcement = "💡  new pull request opened by _" + req.body.pull_request.user.login + '_\n*' + escapeTitle( req.body.pull_request.title ) + '*\n' + req.body.pull_request.html_url + truncateBody( req.body.pull_request.body )
         }
         else if (req.body.action === "reopened")
         {
@@ -190,14 +190,14 @@ function handle(req, res)
         {
             if (req.body.review.state === "changes_requested")
             {
-                announcement = "❌  _" + req.body.sender.login + "_ requested changes on pull request by _" +  req.body.pull_request.user.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n"+ req.body.review._links.html.href + escapeBody( req.body.review.body )
+                announcement = "❌  _" + req.body.sender.login + "_ requested changes on pull request by _" +  req.body.pull_request.user.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n"+ req.body.review._links.html.href + truncateBody( req.body.review.body )
             }
             else if (req.body.review.state === "approved") {
-                announcement = "✅  _" + req.body.sender.login + "_ approved pull request by _" +  req.body.pull_request.user.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n"+ req.body.review._links.html.href + escapeBody( req.body.review.body )
+                announcement = "✅  _" + req.body.sender.login + "_ approved pull request by _" +  req.body.pull_request.user.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n"+ req.body.review._links.html.href + truncateBody( req.body.review.body )
             }
             else if (req.body.review.state === "commented")
             {
-                announcement = "🔍  pull request reviewed by _" +  req.body.sender.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n" + req.body.review._links.html.href + escapeBody( req.body.review.body )
+                announcement = "🔍  pull request reviewed by _" +  req.body.sender.login + "_\n*" + escapeTitle( req.body.pull_request.title ) + "*\n" + req.body.review._links.html.href + truncateBody( req.body.review.body )
             }
         }
     }
@@ -210,9 +210,9 @@ function handle(req, res)
             {
                 for (let c in req.body.commits)
                 {
-                    commitString += ">\\`" + req.body.commits[c].id.substring(0,8) + "\\` " + ( req.body.commits[c].message.split("\n")[0] ).replace( /`+/gm, "`" ).replace( /`/gm    , "\\`" ).replace( /"/gm, '\\"'  ) + " - " + req.body.commits[c].author.username + "\n"
+                    commitString += ">`" + req.body.commits[c].id.substring(0,8) + "` " + ( req.body.commits[c].message.split("\n")[0] ).replace( /`+/gm, "`" ) + " - " + req.body.commits[c].author.username + "\n"
                 }
-                announcement = '*_' + req.body.sender.login + '_ pushed ' + req.body.commits.length + ( req.body.commits.length > 1 ? ' commits' : ' commit' ) + ' to* \\`' + ( req.body.ref).split("/")[2] + '\\`\n\n' + commitString  + '\n.'
+                announcement = '*_' + req.body.sender.login + '_ pushed ' + req.body.commits.length + ( req.body.commits.length > 1 ? ' commits' : ' commit' ) + ' to* `' + ( req.body.ref).split("/")[2] + '`\n\n' + commitString  + '\n.'
                 commitString = ""
             }
         }
@@ -265,13 +265,10 @@ function getChannelForRepo(targetRepo)
 
 function escapeTitle(rawTitle)
 {
-    let escapedTitle = rawTitle.replace( /`+/gm, "`" )
-    escapedTitle = escapedTitle.replace( /`/gm, "'" )
-    escapedTitle = escapedTitle.replace( /"/gm, '\\"' )
-    return escapedTitle
+    return rawTitle.replace( /`+/gm, "\\`" )
 }
 
-function escapeBody(rawBody)
+function truncateBody(rawBody)
 {
     //don't bother if body is empty
     if (rawBody.length === 0)
@@ -279,23 +276,20 @@ function escapeBody(rawBody)
         return "\n\n."
     }
 
-    //escape back-ticks and double-quotes
-    let escapedBody = rawBody.replace( /`/gm, "\\`" )
-    escapedBody = escapedBody.replace( /"/gm, '\\"' )
-
-    let bodyEnd = "\n\n.";  //full message shows
+    let truncatedBody = rawBody.trim()
+    let bodyEnd = "\n\n."  //if full message shows
 
     //truncate string after 3 paragraphs
-    let splitBody = escapedBody.split( "\r\n\r\n" )
+    let splitBody = rawBody.split( "\r\n\r\n" )
     if( splitBody.length > 3 ) {
         splitBody = splitBody.slice(0,3)
-        escapedBody = splitBody.join( "\\r\\n\\r\\n" )
-        bodyEnd = "\n\n...";    //truncated message shows
+        truncatedBody = splitBody.join( "\r\n\r\n" )
+        bodyEnd = "\n\n..."    //if truncated message shows
     }
 
-    escapedBody = "\n\n" + escapedBody + bodyEnd
+    truncatedBody = "\n\n" + truncatedBody + bodyEnd
 
-    return escapedBody
+    return truncatedBody
 }
 
 process.on('exit', cleanup)
