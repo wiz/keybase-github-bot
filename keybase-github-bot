@@ -265,10 +265,7 @@ function getChannelForRepo(targetRepo)
 
 function escapeTitle(rawTitle)
 {
-    let escapedTitle = rawTitle.replace( /`+/gm, "`" )
-    escapedTitle = escapedTitle.replace( /`/gm, "'" )
-    escapedTitle = escapedTitle.replace( /"/gm, '\\"' )
-    return escapedTitle
+    return rawTitle.replace( /`+/gm, "\\`" )
 }
 
 function truncateBody(rawBody)
