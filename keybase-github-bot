@@ -210,9 +210,9 @@ function handle(req, res)
             {
                 for (let c in req.body.commits)
                 {
-                    commitString += ">\\`" + req.body.commits[c].id.substring(0,8) + "\\` " + ( req.body.commits[c].message.split("\n")[0] ).replace( /`+/gm, "`" ).replace( /`/gm    , "\\`" ).replace( /"/gm, '\\"'  ) + " - " + req.body.commits[c].author.username + "\n"
+                    commitString += ">`" + req.body.commits[c].id.substring(0,8) + "` " + ( req.body.commits[c].message.split("\n")[0] ).replace( /`+/gm, "`" ) + " - " + req.body.commits[c].author.username + "\n"
                 }
-                announcement = '*_' + req.body.sender.login + '_ pushed ' + req.body.commits.length + ( req.body.commits.length > 1 ? ' commits' : ' commit' ) + ' to* \\`' + ( req.body.ref).split("/")[2] + '\\`\n\n' + commitString  + '\n.'
+                announcement = '*_' + req.body.sender.login + '_ pushed ' + req.body.commits.length + ( req.body.commits.length > 1 ? ' commits' : ' commit' ) + ' to* `' + ( req.body.ref).split("/")[2] + '`\n\n' + commitString  + '\n.'
                 commitString = ""
             }
         }
