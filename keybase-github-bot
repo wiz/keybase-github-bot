@@ -85,7 +85,7 @@ async function joinAll(teamName)
                 {
                     await bot.chat.joinChannel(conversation.channel)
                     console.log('Joined team channel', conversation.channel.name, conversation.channel.topicName)
-                    await sendMessageToTeamChannel(teamName, conversation.channel.name, `Hello! This is ${bot.myInfo().username}! a friendly bot to help with GitHub`)
+                    await sendMessageToTeamChannel(teamName, conversation.channel.topicName, `Hello! This is ${bot.myInfo().username}! a friendly bot to help with GitHub`)
                 }
             }
         }
