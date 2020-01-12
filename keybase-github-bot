@@ -10,13 +10,14 @@ const team = process.env.KB_TEAMNAME
 const secret = process.env.GITHUB_SECRET
 const channelMapping = process.env.GITHUB_REPO_MAPPINGS
 
+const bot = new Bot()
 const server = http.createServer
 (
     (req, res) =>
     {
         let body = []
         req.on('data', (chunk) => body.push(chunk))
-        req.on('end', async () =>
+        req.on('end', () =>
             {
                 try
                 {
@@ -28,7 +29,7 @@ const server = http.createServer
                 }
                 try
                 {
-                    await handle(req, res)
+                    handle(req, res)
                 }
                 catch (e)
                 {
@@ -41,8 +42,6 @@ const server = http.createServer
     }
 )
 
-let bot = null
-
 async function main()
 {
     try
@@ -50,27 +49,25 @@ async function main()
         await init()
         await joinAll(team)
         await server.listen(3001)
-        await bot.deinit()
         console.log('Ready!')
     }
     catch (error)
     {
         console.log(error)
+        await bot.deinit()
     }
 }
 
-async function cleanup()
+function cleanup()
 {
     console.log("cleaning up...")
-    try { await bot.deinit() } catch (e) {}
+    bot.deinit()
 }
 
 async function init()
 {
-    bot = new Bot()
-    await bot.init(username, paperkey, {verbose: true})
-    if (bot.myInfo() != null)
-        console.log(`Your bot is initialized. It is logged in as ${bot.myInfo().username}`)
+    await bot.init(username, paperkey, {verbose: false})
+    console.log(`Your bot is initialized. It is logged in as ${bot.myInfo().username}`)
 }
 
 async function joinAll(teamName)
@@ -106,12 +103,10 @@ async function sendMessageToTeamChannel(teamName, channelName, body)
         body: body
     }
     console.log(`Sending message to ${teamName}#${channelName}: ${body}`)
-    await init()
     await bot.chat.send(channel, message)
-    await bot.deinit()
 }
 
-async function handle(req, res)
+function handle(req, res)
 {
     let sig = ""
     let announcement = ""
@@ -250,8 +245,8 @@ async function handle(req, res)
         return
     }
 
-    await sendMessageToTeamChannel(team, channel, announcement)
-    await res.end()
+    sendMessageToTeamChannel(team, channel, announcement)
+    res.end()
 }
 
 function getChannelForRepo(targetRepo)
