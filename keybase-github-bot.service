@@ -11,11 +11,5 @@ Restart=on-failure
 User=irc
 Group=irc
 
-PrivateTmp=true
-ProtectSystem=full
-NoNewPrivileges=true
-PrivateDevices=true
-MemoryDenyWriteExecute=false
-
 [Install]
 WantedBy=multi-user.target
