@@ -30,6 +30,7 @@ const server = http.createServer
                 try
                 {
                     handle(req, res)
+                    res.end()
                 }
                 catch (e)
                 {
@@ -115,7 +116,6 @@ function handle(req, res)
     if (req.headers['x-github-delivery'] == null)
     {
         res.statusCode = 400
-        res.end()
         return
     }
 
@@ -246,7 +246,6 @@ function handle(req, res)
     }
 
     sendMessageToTeamChannel(team, channel, announcement)
-    res.end()
 }
 
 function getChannelForRepo(targetRepo)
