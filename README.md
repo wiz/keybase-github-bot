@@ -65,3 +65,10 @@ Finally, configure the webhook on your GitHub repo
 * Set secret to match your string in bot config
 * Map full git repo name in bot config to channel name
   i.e. `wiz/keybase-github-bot=general`)
+
+### Ubuntu cleans /tmp
+
+If ubuntu erases your Keybase session cookies in /tmp you might want to do this:
+```bash
+sudo systemctl mask systemd-tmpfiles-clean.timer
+```
