@@ -29,7 +29,7 @@ const server = http.createServer
                 }
                 try
                 {
-                    handle(req, res)
+                    res.statusCode = handle(req, res)
                     res.end()
                 }
                 catch (e)
@@ -113,15 +113,18 @@ function handle(req, res)
     let announcement = ""
     let commitString = ""
 
-    if (req.headers['x-github-delivery'] == null)
-    {
-        res.statusCode = 400
-        return
-    }
+    const repo = req.body.repository.full_name
+    const channel = getChannelForRepo(repo)
 
-    console.log("received complete data request -- " + req.headers['x-github-delivery'] + " -- " + Date() + "\n")
+    console.log("Webhook event " + req.headers['x-github-event'] + " for repo " + repo)
     //console.log(req.headers)
     //console.log(req.body)
+
+    if (repo == null || channel == null)
+    {
+        console.log("No channel mapped to repo, ignoring this event!")
+        return 200
+    }
 
     try
     {
@@ -130,12 +133,13 @@ function handle(req, res)
     catch(e)
     {
         console.log("failed to calculate signature! "+sig)
-        return
+        return 400
     }
 
     if (req.headers['x-hub-signature'] != sig)
     {
         console.log("failed sig check check: "+sig)
+        //return 400
     }
 
     if (req.headers['x-github-event'] === "issues")
@@ -204,7 +208,7 @@ function handle(req, res)
 
     if (req.headers['x-github-event'] === "push")
     {
-        if (req.body.ref === "refs/heads/master" || ( ( req.body.ref ).replace( /refs\/tags\/v[0-9].[0-9].?[0-9]?/, "" ).length === 0 ))
+        if (true || req.body.ref === "refs/heads/master" || ( ( req.body.ref ).replace( /refs\/tags\/v[0-9].[0-9].?[0-9]?/, "" ).length === 0 ))
         {
             if (req.body.commits.length > 0)
             {
@@ -225,27 +229,13 @@ function handle(req, res)
 
     if (announcement.length < 1)
     {
-        console.log("nothing to announce??")
-        return
+        console.log("Unhandled event type, ignoring this event!")
+        return 200
     }
 
     console.log(announcement)
-
-    const repo = req.body.repository.full_name
-    if (repo == null)
-    {
-        console.log("repo is null")
-        return
-    }
-
-    const channel = getChannelForRepo(repo)
-    if (channel == null)
-    {
-        console.log("channel is null")
-        return
-    }
-
     sendMessageToTeamChannel(team, channel, announcement)
+    return 200
 }
 
 function getChannelForRepo(targetRepo)
