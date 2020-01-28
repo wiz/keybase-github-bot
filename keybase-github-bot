@@ -67,7 +67,8 @@ function cleanup()
 
 async function init()
 {
-    await bot.init(username, paperkey, {verbose: false})
+    //await bot.init(username, paperkey, {verbose: false})
+    await bot.initFromRunningService()
     console.log(`Your bot is initialized. It is logged in as ${bot.myInfo().username}`)
 }
 
